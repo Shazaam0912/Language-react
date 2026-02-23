@@ -1,0 +1,843 @@
+/* ============================
+   SIDEBAR TRANSCRIPT PANEL
+   ============================ */
+
+#dual-subs-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 420px;
+  height: 100vh;
+  background-color: #1a1a2e;
+  color: #e0e0e0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease;
+}
+
+#dual-subs-sidebar.hidden {
+  transform: translateX(100%);
+}
+
+/* Header bar */
+.ds-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #16213e;
+  border-bottom: 1px solid #2a2a4a;
+  flex-shrink: 0;
+}
+
+/* Tabs */
+.ds-sidebar-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.ds-sidebar-tab {
+  background: none;
+  border: none;
+  color: #8888aa;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.ds-sidebar-tab:hover {
+  color: #ccccee;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.ds-sidebar-tab.active {
+  color: #ffffff;
+  background-color: rgba(139, 92, 246, 0.25);
+}
+
+/* Header icons */
+.ds-sidebar-icons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ds-sidebar-icon-btn {
+  background: none;
+  border: none;
+  color: #8888aa;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.ds-sidebar-icon-btn:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Scrollable transcript area */
+.ds-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+.ds-sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ds-sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ds-sidebar-content::-webkit-scrollbar-thumb {
+  background-color: #3a3a5a;
+  border-radius: 3px;
+}
+
+.ds-sidebar-content::-webkit-scrollbar-thumb:hover {
+  background-color: #5a5a7a;
+}
+
+/* Each subtitle entry */
+.ds-subtitle-entry {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.ds-subtitle-entry:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Active/current subtitle */
+.ds-subtitle-entry.active {
+  background-color: rgba(139, 92, 246, 0.2);
+  border-left-color: #8b5cf6;
+}
+
+/* Word groups in sidebar entry (romaji aligned above Japanese) */
+.ds-entry-original {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0;
+  margin-bottom: 2px;
+}
+
+.ds-entry-word-group {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 1px;
+}
+
+.ds-entry-romaji-word {
+  font-size: 10px;
+  color: #a0a0c0;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.ds-subtitle-entry.active .ds-entry-romaji-word {
+  color: #c4b5fd;
+}
+
+.ds-entry-jp-word {
+  font-size: 16px;
+  color: #e0e0e0;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.ds-subtitle-entry.active .ds-entry-jp-word {
+  color: #ffffff;
+}
+
+/* Translation line in entry */
+.ds-entry-translation {
+  font-size: 12px;
+  color: #7a7a9a;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.ds-subtitle-entry.active .ds-entry-translation {
+  color: #a5a5c5;
+}
+
+/* Timestamp */
+.ds-entry-time {
+  font-size: 10px;
+  color: #5a5a7a;
+  margin-top: 3px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+.ds-subtitle-entry.active .ds-entry-time {
+  color: #8b5cf6;
+}
+
+/* Separator */
+.ds-entry-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.04);
+  margin: 0 14px;
+}
+
+/* Words tab content */
+.ds-words-content {
+  padding: 16px;
+}
+
+/* Category filter bar */
+.ds-word-filter-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: sticky;
+  top: 0;
+  background: #1a1a2e;
+  z-index: 2;
+}
+
+.ds-word-filter-bar::-webkit-scrollbar { display: none; }
+
+.ds-word-filter-btn {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #9090b0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  letter-spacing: 0.3px;
+}
+
+.ds-word-filter-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: #ccccee;
+}
+
+.ds-word-filter-btn.active {
+  background: rgba(139, 92, 246, 0.3);
+  border-color: #8b5cf6;
+  color: #d4bbfe;
+}
+
+.ds-word-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.ds-word-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.ds-word-surface {
+  font-size: 16px;
+  color: #e0e0e0;
+}
+
+.ds-word-romaji {
+  font-size: 12px;
+  color: #8888aa;
+}
+
+.ds-word-count {
+  font-size: 11px;
+  color: #5a5a7a;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* JLPT level section headers */
+.ds-jlpt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 6px;
+  position: sticky;
+  top: 0;
+  background-color: #1a1a2e;
+  z-index: 1;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.ds-jlpt-badge {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.ds-jlpt-desc {
+  font-size: 11px;
+  color: #6a6a8a;
+  flex: 1;
+}
+
+.ds-jlpt-count {
+  font-size: 11px;
+  color: #5a5a7a;
+  background: rgba(255,255,255,0.05);
+  padding: 1px 7px;
+  border-radius: 8px;
+}
+
+/* Saved tab - empty state */
+.ds-saved-content {
+  padding: 16px;
+  text-align: center;
+  color: #5a5a7a;
+  font-size: 13px;
+}
+
+.ds-saved-content .ds-empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+/* Toggle button (floating) */
+#dual-subs-sidebar-toggle {
+  position: fixed;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10001;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: rgba(139, 92, 246, 0.8);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+#dual-subs-sidebar-toggle:hover {
+  background-color: rgba(139, 92, 246, 1);
+  transform: translateY(-50%) scale(1.1);
+}
+
+#dual-subs-sidebar-toggle.sidebar-open {
+  right: 432px;
+}
+
+/* Cinema Mode Toggle button (floating next to sidebar toggle) */
+#dual-subs-cinema-toggle {
+  position: fixed;
+  right: 12px;
+  top: calc(50% + 40px); /* Positioned just below the sidebar toggle */
+  transform: translateY(-50%);
+  z-index: 10001;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: rgba(60, 60, 60, 0.8);
+  color: #ffeb3b; /* yellow lightbulb */
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+#dual-subs-cinema-toggle:hover {
+  background-color: rgba(80, 80, 80, 1);
+  transform: translateY(-50%) scale(1.1);
+}
+
+#dual-subs-cinema-toggle.sidebar-open {
+  right: 432px;
+}
+
+#dual-subs-cinema-toggle.cinema-active {
+  background-color: rgba(255, 235, 59, 0.9);
+  color: #222;
+  box-shadow: 0 0 15px rgba(255, 235, 59, 0.6);
+}
+
+/* ── Cinema Mode Cutout ─────────────────────────────────────────── */
+#ds-cinema-cutout {
+  display: none;
+  position: fixed;
+  box-shadow: 0 0 0 99999px rgba(0,0,0,0.95);
+  background: transparent;
+  z-index: 2000;
+  pointer-events: none; /* Let clicks pass through to video/page */
+  transition: opacity 0.4s ease;
+  opacity: 0;
+}
+
+body.ds-cinema-active #ds-cinema-cutout {
+  display: block;
+}
+
+body.ds-cinema-active.ds-cinema-fade-in #ds-cinema-cutout {
+  opacity: 1;
+}
+
+/* Elevate sidebar above the backdrop */
+body.ds-cinema-active #dual-subs-sidebar {
+  z-index: 2002 !important;
+}
+
+/* ── Word Detail Modal ────────────────────────────────────────────── */
+#ds-word-modal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 440px;
+  max-width: 90vw;
+  max-height: 85vh;
+  background-color: #282828;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  z-index: 2147483647;
+  overflow: hidden;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #fff;
+}
+
+#ds-word-modal.ds-open {
+  display: flex;
+}
+
+#ds-word-modal-backdrop {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2147483646;
+}
+
+#ds-word-modal-backdrop.ds-open {
+  display: block;
+}
+
+.ds-modal-header {
+  background-color: #0f70b7;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.ds-modal-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ds-modal-header-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ds-modal-jp {
+  color: #ffd700;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.ds-modal-romaji {
+  color: #ffd700;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.ds-modal-meaning {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.ds-modal-header-right {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.ds-modal-icon-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-modal-icon-btn:hover {
+  opacity: 1;
+}
+
+.ds-modal-tabs {
+  display: flex;
+  background: #333;
+  padding: 0 16px;
+  border-bottom: 1px solid #444;
+  gap: 24px;
+}
+
+.ds-modal-tab {
+  background: none;
+  border: none;
+  color: #999;
+  padding: 12px 0;
+  font-size: 14px;
+  cursor: pointer;
+  position: relative;
+}
+
+.ds-modal-tab.active {
+  color: #fff;
+}
+
+.ds-modal-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #fff;
+}
+
+.ds-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ds-modal-def-block {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #e0e0e0;
+}
+
+.ds-modal-examples-header {
+  background: #3a3a3a;
+  padding: 6px 16px;
+  color: #aaa;
+  font-size: 13px;
+  margin: 0 -20px;
+}
+
+.ds-modal-example-box {
+  background: #222;
+  padding: 16px;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.ds-modal-example-sentence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  align-items: flex-end;
+}
+
+.ds-modal-example-word {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ds-modal-example-romaji {
+  font-size: 11px;
+  color: #888;
+}
+
+.ds-modal-example-jp {
+  font-size: 18px;
+  color: #fff;
+}
+
+.ds-modal-example-highlight .ds-modal-example-romaji,
+.ds-modal-example-highlight .ds-modal-example-jp {
+  color: #6ee7b7; /* green highlight */
+}
+
+.ds-modal-footer {
+  background: #333;
+  padding: 12px 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid #444;
+}
+
+.ds-modal-save-btn {
+  background: #444;
+  border: 1px solid #555;
+  color: #aaa;
+  width: 44px;
+  height: 32px;
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.ds-modal-save-btn:hover {
+  background: #555;
+}
+
+.ds-modal-save-btn[data-state="known"].active {
+  background: rgba(34,197,94,0.2);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.ds-modal-save-btn[data-state="remember"].active {
+  background: rgba(234,179,8,0.2);
+  border-color: #eab308;
+  color: #eab308;
+}
+
+.ds-modal-save-btn[data-state="unknown"].active {
+  background: rgba(255,255,255,0.1);
+  border-color: #aaa;
+  color: #fff;
+}
+
+/* ── Fullscreen & Theater Mode Squish ─────────────────────────────── */
+/* When sidebar is open, compress the video player width so it doesn't get covered */
+body.ds-sidebar-active ytd-watch-flexy[theater] #player-full-bleed-container,
+body.ds-sidebar-active ytd-watch-flexy[fullscreen] #player-full-bleed-container,
+body.ds-sidebar-active ytd-watch-flexy[theater] #player-container-outer,
+body.ds-sidebar-active ytd-watch-flexy[fullscreen] #player-container-outer {
+  width: calc(100vw - 420px) !important;
+  max-width: calc(100vw - 420px) !important;
+  transition: width 0.3s ease, max-width 0.3s ease;
+}
+
+/* Also ensure the internal video element scales to fit the new squished container */
+body.ds-sidebar-active ytd-watch-flexy[theater] video,
+body.ds-sidebar-active ytd-watch-flexy[fullscreen] video {
+  max-width: 100% !important;
+  object-fit: contain !important;
+}
+
+/* ── AI Chat Tab ────────────────────────────────────────────── */
+
+.ds-ai-chat-container {
+  display: flex !important;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ds-aichat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(139, 92, 246, 0.15);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+  font-size: 14px;
+}
+
+#ds-aichat-settings-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 4px;
+  transition: all 0.2s;
+}
+#ds-aichat-settings-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+.ds-aichat-panel {
+  padding: 12px 16px;
+  background: #1e1e2d;
+  border-bottom: 1px solid #333;
+}
+.ds-aichat-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #111;
+  color: #fff;
+  font-family: monospace;
+}
+.ds-aichat-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+.ds-aichat-btn:hover { opacity: 0.9; }
+.ds-primary { background: #8b5cf6; color: white; }
+
+.ds-aichat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ds-chat-msg {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+.ds-chat-system {
+  background: rgba(255, 255, 255, 0.05);
+  color: #aaa;
+  align-self: center;
+  text-align: center;
+  font-size: 12px;
+  font-style: italic;
+  max-width: 95%;
+}
+.ds-chat-user {
+  background: #8b5cf6;
+  color: #fff;
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+.ds-chat-model {
+  background: #2a2a4a;
+  color: #eee;
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
+}
+.ds-chat-loading {
+  font-family: monospace;
+  animation: pulse 1s infinite alternate;
+}
+@keyframes pulse { 0% { opacity: 0.5; } 100% { opacity: 1; } }
+
+.ds-aichat-input-area {
+  padding: 12px 16px;
+  background: #16213e;
+  border-top: 1px solid #2a2a4a;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+#ds-aichat-textarea {
+  flex: 1;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  color: #fff;
+  border-radius: 18px;
+  padding: 10px 16px;
+  resize: none;
+  max-height: 120px;
+  overflow-y: auto;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+}
+#ds-aichat-textarea:focus {
+  outline: none;
+  border-color: #8b5cf6;
+}
+
+.ds-aichat-controls {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+.ds-aichat-action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 17px;
+  border: none;
+  background: #2a2a4a;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 15px;
+}
+.ds-aichat-action-btn:hover {
+  background: #3a3a6a;
+}
+.ds-aichat-action-btn.ds-send {
+  background: #8b5cf6;
+}
+.ds-aichat-action-btn.ds-send:hover {
+  background: #7c3aed;
+}
+
+#ds-aichat-mic-btn.recording {
+  background: #ef4444;
+  animation: micPulse 1.5s infinite;
+}
+@keyframes micPulse { 
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
+}

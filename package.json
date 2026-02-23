@@ -1,0 +1,28 @@
+{
+  "name": "youtube-dual-subtitles",
+  "version": "1.0.0",
+  "description": "[Install in Chrome](https://chromewebstore.google.com/detail/youtube-dual-subtitles/kicgaahncmjpbgokkckmgglblgpjokmb)",
+  "main": "content.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jimchen2/youtube-dual-subtitles.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jimchen2/youtube-dual-subtitles/issues"
+  },
+  "homepage": "https://github.com/jimchen2/youtube-dual-subtitles#readme",
+  "dependencies": {
+    "kuroshiro": "^1.2.0",
+    "kuroshiro-analyzer-kuromoji": "^1.1.0"
+  }
+}

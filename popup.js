@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const otherLangsContainer = document.getElementById("otherLangsContainer");
   const targetLangSelect = document.getElementById("targetLang");
   const autoPlayCheckbox = document.getElementById("autoPlay");
+  const showRomajiCheckbox = document.getElementById("showRomaji");
   const selectAllBtn = document.getElementById("selectAll");
   const clearAllBtn = document.getElementById("clearAll");
   const removeSubsBtn = document.getElementById("removeSubsBtn");
@@ -95,6 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
       originalLangs: ["es", "de", "ru", "uk", "zh-Hans"],
       targetLang: "en",
       autoPlay: true,
+      showRomaji: true,
     };
     chrome.storage.local.get(defaults, (settings) => {
       langCheckboxes.forEach((cb) => {
@@ -102,6 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       targetLangSelect.value = settings.targetLang;
       autoPlayCheckbox.checked = settings.autoPlay;
+      showRomajiCheckbox.checked = settings.showRomaji;
 
       // After loading settings, update the checkbox states based on the target language
       updateOriginalLanguageOptions();
@@ -117,6 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
       originalLangs: selectedLangs,
       targetLang: targetLangSelect.value,
       autoPlay: autoPlayCheckbox.checked,
+      showRomaji: showRomajiCheckbox.checked,
     };
     chrome.storage.local.set(settings, () => {
       reloadNotice.style.display = "flex";
@@ -139,6 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     autoPlayCheckbox.addEventListener("change", saveSettings);
+    showRomajiCheckbox.addEventListener("change", saveSettings);
 
     selectAllBtn.addEventListener("click", () => {
       langCheckboxes.forEach((cb) => {
