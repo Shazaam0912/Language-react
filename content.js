@@ -2023,7 +2023,7 @@
   function playTTS(text) {
     // Hardcoded API Keys
     const elevenLabsApiKey = 'sk_461a3d33bf6a5980b46dfd3c41f194468e08bc0cdbbf59ca';
-    const voiceId = "pNInz6obpgDQGcFmaJcg"; // default voice
+    const voiceId = "21m00Tcm4TlvDq8ikWAM"; // default voice (Rachel)
     
     (async () => {
         try {
