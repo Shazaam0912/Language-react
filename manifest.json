@@ -7,7 +7,9 @@
   "homepage_url": "https://jimchen.me",
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "tabCapture",
+    "offscreen"
   ],
   "host_permissions": [
     "https://*.youtube.com/*",

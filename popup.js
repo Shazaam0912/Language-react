@@ -16,6 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const errorBox = document.getElementById("errorBox");
   const reloadNotice = document.getElementById("reloadNotice");
   const reloadBtn = document.getElementById("reloadBtn");
+  // Live Transcription elements
+  const geminiApiKeyInput = document.getElementById("geminiApiKey");
+  const elevenLabsApiKeyInput = document.getElementById("elevenLabsApiKey");
+  const elevenLabsVoiceIdInput = document.getElementById("elevenLabsVoiceId");
 
   // --- Configuration ---
   const mainLangCodes = ["zh-Hans", "zh-Hant", "en", "ru", "es", "fr", "de", "ja", "uk"];
@@ -97,6 +101,9 @@ document.addEventListener("DOMContentLoaded", () => {
       targetLang: "en",
       autoPlay: true,
       showRomaji: true,
+      geminiApiKey: "",
+      elevenLabsApiKey: "",
+      elevenLabsVoiceId: ""
     };
     chrome.storage.local.get(defaults, (settings) => {
       langCheckboxes.forEach((cb) => {
@@ -105,6 +112,9 @@ document.addEventListener("DOMContentLoaded", () => {
       targetLangSelect.value = settings.targetLang;
       autoPlayCheckbox.checked = settings.autoPlay;
       showRomajiCheckbox.checked = settings.showRomaji;
+      geminiApiKeyInput.value = settings.geminiApiKey;
+      elevenLabsApiKeyInput.value = settings.elevenLabsApiKey;
+      elevenLabsVoiceIdInput.value = settings.elevenLabsVoiceId;
 
       // After loading settings, update the checkbox states based on the target language
       updateOriginalLanguageOptions();
@@ -121,6 +131,9 @@ document.addEventListener("DOMContentLoaded", () => {
       targetLang: targetLangSelect.value,
       autoPlay: autoPlayCheckbox.checked,
       showRomaji: showRomajiCheckbox.checked,
+      geminiApiKey: geminiApiKeyInput.value,
+      elevenLabsApiKey: elevenLabsApiKeyInput.value,
+      elevenLabsVoiceId: elevenLabsVoiceIdInput.value
     };
     chrome.storage.local.set(settings, () => {
       reloadNotice.style.display = "flex";
@@ -144,6 +157,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     autoPlayCheckbox.addEventListener("change", saveSettings);
     showRomajiCheckbox.addEventListener("change", saveSettings);
+    geminiApiKeyInput.addEventListener("change", saveSettings);
+    elevenLabsApiKeyInput.addEventListener("change", saveSettings);
+    elevenLabsVoiceIdInput.addEventListener("change", saveSettings);
 
     selectAllBtn.addEventListener("click", () => {
       langCheckboxes.forEach((cb) => {

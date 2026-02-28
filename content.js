@@ -192,14 +192,81 @@
     chrome.runtime.sendMessage({ type: "error", message: message });
   }
 
-  // --- MESSAGE LISTENER for commands from popup.js ---
+  // --- MESSAGE LISTENER for commands from popup.js & background.js ---
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "removeSubtitles") {
       removeSubs();
       sendResponse({ status: "Subtitles removed" });
     }
+    if (request.type === 'INCOMING_LIVE_TRANSCRIPT') {
+      handleLiveTranscript(request.text, request.isFinal);
+    }
     return true;
   });
+
+  // --- LIVE TRANSCRIPTION OVERLAY SUPPORT ---
+  let isLiveMode = false;
+  let currentLiveSentence = "";
+
+  function handleLiveTranscript(text, isFinal) {
+    if (!isLiveMode) {
+      isLiveMode = true;
+      createOverlay(); // Ensure overlay exists
+      subsVisible = true;
+    }
+
+    const originalDiv = document.getElementById('dual-subs-original');
+    const translatedDiv = document.getElementById('dual-subs-translated');
+    const originalContainer = document.getElementById('dual-subs-original-container');
+    
+    if (!originalDiv || !translatedDiv) return;
+
+    // For live mode, hide the word-aligned container as we don't have tokenization yet for live streams
+    if (originalContainer) originalContainer.style.display = 'none';
+    
+    originalDiv.style.display = 'block';
+    translatedDiv.style.display = 'block';
+
+    if (isFinal) {
+      // Complete sentence received
+      currentLiveSentence += text + " ";
+      originalDiv.textContent = currentLiveSentence;
+      translateLiveText(currentLiveSentence, translatedDiv);
+    } else {
+      // Partial sentence received (user still speaking)
+      originalDiv.textContent = currentLiveSentence + text;
+      translatedDiv.textContent = "..."; // Show indicator while waiting
+    }
+  }
+
+  // Simple debounce for live translation to save hits on the free endpoint
+  let liveTranslationTimeout = null;
+  function translateLiveText(textToTranslate, translatedDivElement) {
+    if (liveTranslationTimeout) clearTimeout(liveTranslationTimeout);
+    
+    liveTranslationTimeout = setTimeout(async () => {
+      try {
+        const targetLangUrl = encodeURIComponent(settings.targetLang);
+        const sourceTextUrl = encodeURIComponent(textToTranslate);
+        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLangUrl}&dt=t&q=${sourceTextUrl}`);
+        const data = await res.json();
+        
+        let translatedText = "";
+        if (data && data[0]) {
+          data[0].forEach(chunk => {
+             if (chunk[0]) translatedText += chunk[0];
+          });
+        }
+        translatedDivElement.textContent = translatedText;
+        
+        // Reset current sentence after translation so next sentence starts fresh
+        currentLiveSentence = "";
+      } catch (err) {
+        console.error("[DUAL SUBS] Free Live Translation Error:", err);
+        translatedDivElement.textContent = "[Translation Error]";
+      }
+    }, 800); // Wait 800ms of non-speaking before executing translation
+  }
 
   // *****************************************************************
   // TRIGGER ONCE AND PREPARE FUTURE TRIGGERS (YOUTUBE IS SINGLE PAGE)
@@ -428,6 +495,17 @@
       if (sidebarToggle) sidebarToggle.style.display = subsVisible ? '' : 'none';
     });
     playerContainer.appendChild(toggleBtn);
+
+    // --- Talk to Creator Button ---
+    const talkBtn = document.createElement('button');
+    talkBtn.id = 'talk-to-creator-btn';
+    talkBtn.textContent = '🎤 Talk to Creator';
+    talkBtn.title = 'Voice chat with AI Creator';
+    talkBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openChatSidebar();
+    });
+    playerContainer.appendChild(talkBtn);
 
     console.log("[DUAL SUBS] Custom overlay created");
   }
@@ -1028,6 +1106,17 @@
     console.log('[DUAL SUBS] Sidebar created');
   }
 
+  function openChatSidebar() {
+    const sidebar = document.getElementById('dual-subs-sidebar');
+    if (sidebar) {
+      if (sidebar.classList.contains('hidden')) toggleSidebar(true);
+      
+      // Specifically switch to the AI Chat tab
+      const chatTab = document.querySelector('.ds-sidebar-tab[data-target="ai chat"]');
+      if (chatTab) chatTab.click();
+    }
+  }
+
   // **********************
   // AI CHAT FEATURE
   // **********************
@@ -1041,10 +1130,13 @@
       
       <!-- Settings Panel (Hidden by default) -->
       <div id="ds-aichat-settings" style="display:none;" class="ds-aichat-panel">
-        <label style="font-size:12px;color:#aaa;display:block;margin-bottom:4px;">OpenRouter API Key:</label>
-        <input type="password" id="ds-aichat-apikey" placeholder="sk-or-v1..." class="ds-aichat-input" />
-        <div style="font-size:11px;color:#888;margin-top:4px;">Get a free key at openrouter.ai</div>
-        <button id="ds-aichat-save-key" class="ds-aichat-btn ds-primary" style="margin-top:12px;width:100%">Save Key</button>
+        <label style="font-size:12px;color:#aaa;display:block;margin-bottom:4px;">Gemini API Key:</label>
+        <input type="password" id="ds-aichat-apikey" placeholder="AIzaSy..." class="ds-aichat-input" />
+        <label style="font-size:12px;color:#aaa;display:block;margin-top:8px;margin-bottom:4px;">ElevenLabs API Key:</label>
+        <input type="password" id="ds-aichat-elevenlabs-apikey" placeholder="Paste your ElevenLabs Key" class="ds-aichat-input" />
+        <label style="font-size:12px;color:#aaa;display:block;margin-top:8px;margin-bottom:4px;">ElevenLabs Voice ID (Optional):</label>
+        <input type="text" id="ds-aichat-elevenlabs-voiceid" placeholder="e.g. pNInz6obpgDQGcFmaJcg" class="ds-aichat-input" />
+        <button id="ds-aichat-save-key" class="ds-aichat-btn ds-primary" style="margin-top:12px;width:100%">Save Keys</button>
       </div>
 
       <!-- Chat Thread -->
@@ -1068,20 +1160,34 @@
     const settingsBtn = container.querySelector('#ds-aichat-settings-btn');
     const settingsPanel = container.querySelector('#ds-aichat-settings');
     const apiKeyInput = container.querySelector('#ds-aichat-apikey');
+    const elevenLabsApiKeyInput = container.querySelector('#ds-aichat-elevenlabs-apikey');
+    const elevenLabsVoiceIdInput = container.querySelector('#ds-aichat-elevenlabs-voiceid');
     const saveKeyBtn = container.querySelector('#ds-aichat-save-key');
     const thread = container.querySelector('#ds-aichat-thread');
     const textarea = container.querySelector('#ds-aichat-textarea');
     const micBtn = container.querySelector('#ds-aichat-mic-btn');
     const sendBtn = container.querySelector('#ds-aichat-send-btn');
 
-    // Load API Key
+    // Load API Keys
     let currentApiKey = '';
-    chrome.storage.local.get(['dsGeminiApiKey'], (res) => {
-      if (res.dsGeminiApiKey) {
-        currentApiKey = res.dsGeminiApiKey;
+    let currentElevenLabsApiKey = '';
+    let currentElevenLabsVoiceId = '';
+    
+    // Load from global settings that we saved in popup.js
+    chrome.storage.local.get(['geminiApiKey', 'elevenLabsApiKey', 'elevenLabsVoiceId'], (res) => {
+      if (res.geminiApiKey) {
+        currentApiKey = res.geminiApiKey;
         apiKeyInput.value = currentApiKey;
       } else {
         settingsPanel.style.display = 'block';
+      }
+      if (res.elevenLabsApiKey) {
+        currentElevenLabsApiKey = res.elevenLabsApiKey;
+        elevenLabsApiKeyInput.value = currentElevenLabsApiKey;
+      }
+      if (res.elevenLabsVoiceId) {
+        currentElevenLabsVoiceId = res.elevenLabsVoiceId;
+        elevenLabsVoiceIdInput.value = currentElevenLabsVoiceId;
       }
     });
 
@@ -1092,7 +1198,14 @@
 
     saveKeyBtn.addEventListener('click', () => {
       currentApiKey = apiKeyInput.value.trim();
-      chrome.storage.local.set({ dsGeminiApiKey: currentApiKey });
+      currentElevenLabsApiKey = elevenLabsApiKeyInput.value.trim();
+      currentElevenLabsVoiceId = elevenLabsVoiceIdInput.value.trim();
+      
+      chrome.storage.local.set({ 
+        geminiApiKey: currentApiKey,
+        elevenLabsApiKey: currentElevenLabsApiKey,
+        elevenLabsVoiceId: currentElevenLabsVoiceId
+      });
       settingsPanel.style.display = 'none';
       settingsBtn.style.color = '#22c55e'; // flash green
       setTimeout(() => settingsBtn.style.color = '', 1000);
@@ -1168,19 +1281,25 @@
       thread.scrollTop = thread.scrollHeight;
 
       try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentApiKey}`, {
           method: 'POST',
           headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + currentApiKey,
-            'HTTP-Referer': 'https://github.com/dual-subs',
-            'X-Title': 'YouTube Dual Subtitles Extension'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: "z-ai/glm-4.5-air:free",
-            messages: conversationHistory,
-            temperature: 0.7,
-            max_tokens: 800 // High limit to allow for 3 full lines (JP/RM/EN)
+            system_instruction: {
+               parts: [{ text: conversationHistory.find(m => m.role === 'system').content }]
+            },
+            contents: [
+               ...conversationHistory.filter(m => m.role !== 'system').map(m => ({
+                  role: m.role === 'user' ? 'user' : 'model',
+                  parts: [{ text: m.content }]
+               }))
+            ],
+            generationConfig: {
+               temperature: 0.7,
+               maxOutputTokens: 800
+            }
           })
         });
 
@@ -1196,7 +1315,12 @@
         }
 
         const data = await response.json();
-        const aiText = data.choices?.[0]?.message?.content;
+        
+        // Gemini API response structure parsing
+        let aiText = '';
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+           aiText = data.candidates[0].content.parts[0].text;
+        }
         
         if (aiText) {
           loadingMsg.remove();
@@ -1949,30 +2073,73 @@
   }
 
 
-  function playTTS(text) {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel(); // stop previous
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'ja-JP';
-    
-    // Try to find a high quality native voice
-    const voices = window.speechSynthesis.getVoices();
-    const jpVoices = voices.filter(v => v.lang === 'ja-JP' || v.lang === 'ja_JP');
-    
-    // Sort to prioritize premium/natural sounding voices (Mac Premium > Google > Standard)
-    let preferred = jpVoices.find(v => v.name.includes('Premium')) 
-      || jpVoices.find(v => v.name.includes('Kyoko') || v.name.includes('Otoya'))
-      || jpVoices.find(v => v.name.includes('Google')) 
-      || jpVoices[0];
-      
-    if (preferred) {
-      utter.voice = preferred;
-    }
+  let currentAudio = null;
 
-    // Add slight random variations to pitch and rate so it sounds less like a monotonous robot
-    utter.rate = (Math.random() * 0.1) + 0.9;  // 0.9 to 1.0 (slightly relaxed speed)
-    utter.pitch = (Math.random() * 0.2) + 0.9; // 0.9 to 1.1 (slight inflection changes)
-    window.speechSynthesis.speak(utter);
+  function playTTS(text) {
+    chrome.storage.local.get(['elevenLabsApiKey', 'elevenLabsVoiceId'], async (res) => {
+      if (res.elevenLabsApiKey) {
+        // Use ElevenLabs API
+        const voiceId = res.elevenLabsVoiceId || "pNInz6obpgDQGcFmaJcg"; // default voice
+        try {
+          const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+            method: 'POST',
+            headers: {
+              'xi-api-key': res.elevenLabsApiKey,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              text: text,
+              model_id: "eleven_multilingual_v2",
+              voice_settings: {
+                stability: 0.5,
+                similarity_boost: 0.75
+              }
+            })
+          });
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            if (currentAudio) {
+               currentAudio.pause();
+               URL.revokeObjectURL(currentAudio.src);
+            }
+            currentAudio = new Audio(url);
+            currentAudio.play();
+            return;
+          } else {
+             console.error("ElevenLabs status bad", response.status);
+             const errText = await response.text();
+             console.error(errText);
+          }
+        } catch (e) {
+          console.error("ElevenLabs TTS Error", e);
+        }
+      }
+      
+      // Fallback: Native TTS
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel(); // stop previous
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ja-JP';
+      
+      // Try to find a high quality native voice
+      const voices = window.speechSynthesis.getVoices();
+      const jpVoices = voices.filter(v => v.lang === 'ja-JP' || v.lang === 'ja_JP');
+      
+      // Sort to prioritize premium/natural sounding voices
+      let preferred = jpVoices.find(v => v.name.includes('Premium')) 
+        || jpVoices.find(v => v.name.includes('Kyoko') || v.name.includes('Otoya'))
+        || jpVoices.find(v => v.name.includes('Google')) 
+        || jpVoices[0];
+        
+      if (preferred) {
+        utter.voice = preferred;
+      }
+
+      utter.rate = (Math.random() * 0.1) + 0.9;
+      utter.pitch = (Math.random() * 0.2) + 0.9;
+      window.speechSynthesis.speak(utter);
+    });
   }
 
   async function showWordModal(wordGroup, fullText) {

@@ -130,6 +130,36 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
+/* Talk to Creator Button */
+#talk-to-creator-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10000;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: rgba(60, 130, 246, 0.85);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(60, 130, 246, 0.4);
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  opacity: 0.8;
+}
+
+#talk-to-creator-btn:hover {
+  opacity: 1;
+  transform: scale(1.05);
+  background-color: rgba(60, 130, 246, 1);
+}
+
 /* Make overlay words interactive */
 .dual-subs-word-group {
   pointer-events: auto;
