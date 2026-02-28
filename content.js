@@ -1125,6 +1125,19 @@
     container.innerHTML = `
       <div class="ds-aichat-header">
         <div style="font-weight:600;">Talk to the Creator</div>
+        <button id="ds-aichat-settings-btn" title="API Settings">⚙️</button>
+      </div>
+
+      <!-- Settings Panel (Hidden by default) -->
+      <div id="ds-aichat-settings" style="display:none;" class="ds-aichat-panel">
+        <div style="font-size:11px;color:#ef4444;margin-bottom:8px;">⚠️ Your previous keys were leaked to GitHub and disabled. Please generate new keys and save them here.</div>
+        <label style="font-size:12px;color:#aaa;display:block;margin-bottom:4px;">Gemini API Key:</label>
+        <input type="password" id="ds-aichat-apikey" placeholder="AIzaSy..." class="ds-aichat-input" />
+        <label style="font-size:12px;color:#aaa;display:block;margin-top:8px;margin-bottom:4px;">ElevenLabs API Key:</label>
+        <input type="password" id="ds-aichat-elevenlabs-apikey" placeholder="Paste your ElevenLabs Key" class="ds-aichat-input" />
+        <label style="font-size:12px;color:#aaa;display:block;margin-top:8px;margin-bottom:4px;">ElevenLabs Voice ID (Optional):</label>
+        <input type="text" id="ds-aichat-elevenlabs-voiceid" placeholder="e.g. 21m00Tcm4TlvDq8ikWAM" class="ds-aichat-input" />
+        <button id="ds-aichat-save-key" class="ds-aichat-btn ds-primary" style="margin-top:12px;width:100%">Save Keys</button>
       </div>
 
 
@@ -1146,15 +1159,59 @@
     `;
 
     // Elements
+    const settingsBtn = container.querySelector('#ds-aichat-settings-btn');
+    const settingsPanel = container.querySelector('#ds-aichat-settings');
+    const apiKeyInput = container.querySelector('#ds-aichat-apikey');
+    const elevenLabsApiKeyInput = container.querySelector('#ds-aichat-elevenlabs-apikey');
+    const elevenLabsVoiceIdInput = container.querySelector('#ds-aichat-elevenlabs-voiceid');
+    const saveKeyBtn = container.querySelector('#ds-aichat-save-key');
     const thread = container.querySelector('#ds-aichat-thread');
     const textarea = container.querySelector('#ds-aichat-textarea');
     const micBtn = container.querySelector('#ds-aichat-mic-btn');
     const sendBtn = container.querySelector('#ds-aichat-send-btn');
-
-    // Hardcoded API Keys
-    let currentApiKey = 'AIzaSyCN82IUns9poi9kr_F7KZYzOB5eVsJ4AiM';
-    let currentElevenLabsApiKey = 'sk_461a3d33bf6a5980b46dfd3c41f194468e08bc0cdbbf59ca';
+    
+    // Load API Keys
+    let currentApiKey = '';
+    let currentElevenLabsApiKey = '';
     let currentElevenLabsVoiceId = '';
+    
+    // Load from global settings that we saved in popup.js
+    chrome.storage.local.get(['geminiApiKey', 'elevenLabsApiKey', 'elevenLabsVoiceId'], (res) => {
+      if (res.geminiApiKey) {
+        currentApiKey = res.geminiApiKey;
+        apiKeyInput.value = currentApiKey;
+      } else {
+        settingsPanel.style.display = 'block';
+      }
+      if (res.elevenLabsApiKey) {
+        currentElevenLabsApiKey = res.elevenLabsApiKey;
+        elevenLabsApiKeyInput.value = currentElevenLabsApiKey;
+      }
+      if (res.elevenLabsVoiceId) {
+        currentElevenLabsVoiceId = res.elevenLabsVoiceId;
+        elevenLabsVoiceIdInput.value = currentElevenLabsVoiceId;
+      }
+    });
+
+    // Settings Toggle
+    settingsBtn.addEventListener('click', () => {
+      settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+    });
+
+    saveKeyBtn.addEventListener('click', () => {
+      currentApiKey = apiKeyInput.value.trim();
+      currentElevenLabsApiKey = elevenLabsApiKeyInput.value.trim();
+      currentElevenLabsVoiceId = elevenLabsVoiceIdInput.value.trim();
+      
+      chrome.storage.local.set({ 
+        geminiApiKey: currentApiKey,
+        elevenLabsApiKey: currentElevenLabsApiKey,
+        elevenLabsVoiceId: currentElevenLabsVoiceId
+      });
+      settingsPanel.style.display = 'none';
+      settingsBtn.style.color = '#22c55e'; // flash green
+      setTimeout(() => settingsBtn.style.color = '', 1000);
+    });
 
     // API Messaging State
     let conversationHistory = []; // stores { role: "system" | "user" | "assistant", content: "..." }
@@ -2021,16 +2078,15 @@
   let currentAudio = null;
 
   function playTTS(text) {
-    // Hardcoded API Keys
-    const elevenLabsApiKey = 'sk_461a3d33bf6a5980b46dfd3c41f194468e08bc0cdbbf59ca';
-    const voiceId = "21m00Tcm4TlvDq8ikWAM"; // default voice (Rachel)
-    
-    (async () => {
+    chrome.storage.local.get(['elevenLabsApiKey', 'elevenLabsVoiceId'], async (res) => {
+      if (res.elevenLabsApiKey) {
+        // Use ElevenLabs API
+        const voiceId = res.elevenLabsVoiceId || "21m00Tcm4TlvDq8ikWAM"; // default voice (Rachel)
         try {
           const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
             method: 'POST',
             headers: {
-              'xi-api-key': elevenLabsApiKey,
+              'xi-api-key': res.elevenLabsApiKey,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -2060,7 +2116,32 @@
         } catch (e) {
           console.error("ElevenLabs TTS Error", e);
         }
-    })();
+      }
+      
+      // Fallback: Native TTS
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel(); // stop previous
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ja-JP';
+      
+      // Try to find a high quality native voice
+      const voices = window.speechSynthesis.getVoices();
+      const jpVoices = voices.filter(v => v.lang === 'ja-JP' || v.lang === 'ja_JP');
+      
+      // Sort to prioritize premium/natural sounding voices
+      let preferred = jpVoices.find(v => v.name.includes('Premium')) 
+        || jpVoices.find(v => v.name.includes('Kyoko') || v.name.includes('Otoya'))
+        || jpVoices.find(v => v.name.includes('Google')) 
+        || jpVoices[0];
+        
+      if (preferred) {
+        utter.voice = preferred;
+      }
+
+      utter.rate = (Math.random() * 0.1) + 0.9;
+      utter.pitch = (Math.random() * 0.2) + 0.9;
+      window.speechSynthesis.speak(utter);
+    });
   }
 
   async function showWordModal(wordGroup, fullText) {
