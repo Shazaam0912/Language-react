@@ -2107,6 +2107,7 @@
                URL.revokeObjectURL(currentAudio.src);
             }
             currentAudio = new Audio(url);
+            currentAudio.playbackRate = 0.85; // Slow down the fast ElevenLabs voice slightly
             currentAudio.play();
             return;
           } else {
